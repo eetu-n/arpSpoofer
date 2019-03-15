@@ -43,7 +43,8 @@ def list_interfaces():
     return interfaces
 
 
-def main():
+def interface_selector():
+    # TODO: Add error detection
     interfaces = list_interfaces()
     print("Available interfaces:")
     i = 0
@@ -64,6 +65,39 @@ def main():
                 break
             i = i + 1
 
-    print("You selected: " + selected_interface.name)
+    return selected_interface
+
+
+def list_hosts(interface: Interface):
+    # TODO: Implement method to list hosts with scapy.arping()
+    host_list = []
+    return host_list
+
+
+def host_selector(interface: Interface):
+    hosts = list_hosts(interface)
+    print("Available hosts:\n")
+    i = 0
+    for host in hosts:
+        print(i + ": " + host)
+        i = i + 1
+
+    selected_host_ids = input("Please select host(s) to sniff, comma separated list of IDs. Default = all:\n")
+
+    selected_hosts = []
+
+    if selected_host_ids is None or selected_host_ids.lower() == "all":
+        selected_hosts = hosts
+    else:
+        # TODO: Convert csv into list of host IPs
+        pass
+
+    return selected_hosts
+
+
+def main():
+    selected_interface = interface_selector()
+    hosts = host_selector(selected_interface)
+
 
 main()
