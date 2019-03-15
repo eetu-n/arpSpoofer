@@ -8,14 +8,15 @@ class Interface:
         self.netmask = netmask
         self.addr = addr
 
-    def getName(self):
+    def get_name(self):
         return self.name
 
-    def getNetmask(self):
+    def get_netmask(self):
         return self.netmask
 
-    def getAddr(self):
+    def get_addr(self):
         return self.addr
+
 
 def list_interfaces():
     # ID for the IP address information on this system
@@ -39,5 +40,30 @@ def list_interfaces():
 
         interfaces.append(iface)
 
+    return interfaces
 
-list_interfaces()
+
+def main():
+    interfaces = list_interfaces()
+    print("Available interfaces:")
+    i = 0
+    for interface in interfaces:
+        print(str(i) + ": " + interface.name)
+        i = i + 1
+
+    selected_interface_id = input("Please choose a network interface:\n")
+    try:
+        selected_interface_id = int(selected_interface_id)
+        selected_interface = interfaces[selected_interface_id]
+
+    except ValueError:
+        i = 0
+        for interface in interfaces:
+            if interface.name == selected_interface_id:
+                selected_interface = interfaces[i]
+                break
+            i = i + 1
+
+    print("You selected: " + selected_interface.name)
+
+main()
