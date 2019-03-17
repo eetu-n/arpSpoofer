@@ -1,6 +1,7 @@
-import scapy
+import scapy.layers.l2
+from scapy.all import conf
 import netifaces
-
+from math import log
 
 class Interface:
     def __init__(self, name, netmask, addr):
@@ -70,27 +71,70 @@ def interface_selector():
 
 def list_hosts(interface: Interface):
     # TODO: Implement method to list hosts with scapy.arping()
-    host_list = []
+
+    netmask = interface.get_netmask().split(".")
+    ip = interface.get_addr().split(".")
+
+    ip = [int(x) for x in ip]
+
+    if ip[3] != 0:
+        ip[3] = ip[3]-1
+    elif ip[2] != 0:
+        ip[3] = 255
+        ip[2] = ip[2] - 1
+    elif ip[1] != 0:
+        ip[3] = 255
+        ip[2] = 255
+        ip[1] = ip[1] - 1
+    elif ip[0] != 0:
+        ip[3] = 255
+        ip[2] = 255
+        ip[1] = 255
+        ip[0] = ip[0]-1
+
+    ip_str = ""
+
+    for segment in ip:
+        ip_str = ip_str + str(segment) + "."
+
+    ip_str = ip_str[:-1]
+
+    cidr = 0
+    for portion in netmask:
+        cidr = cidr + log(int(portion) + 1, 2)
+
+    cidr = str(int(cidr))
+
+    cidr_full = ip_str + "/" + cidr
+
+    print(cidr_full)
+
+    conf.iface = interface.get_name()
+    tmp = scapy.layers.l2.arping(interface.get_addr() + "/" + cidr)
+
+    host_list = ["192.168.56.101", "192.168.56.102"]
     return host_list
 
 
 def host_selector(interface: Interface):
+    # TODO: Add error detection
     hosts = list_hosts(interface)
-    print("Available hosts:\n")
+    print("Available hosts:")
     i = 0
     for host in hosts:
-        print(i + ": " + host)
+        print(str(i) + ": " + host)
         i = i + 1
 
     selected_host_ids = input("Please select host(s) to sniff, comma separated list of IDs. Default = all:\n")
 
     selected_hosts = []
 
-    if selected_host_ids is None or selected_host_ids.lower() == "all":
+    if selected_host_ids == "" or selected_host_ids.lower() == "all":
         selected_hosts = hosts
     else:
-        # TODO: Convert csv into list of host IPs
-        pass
+        selected_host_ids_list = selected_host_ids.split(",")
+        for host_id in selected_host_ids_list:
+            selected_hosts.append(hosts[int(host_id)])
 
     return selected_hosts
 
@@ -98,6 +142,6 @@ def host_selector(interface: Interface):
 def main():
     selected_interface = interface_selector()
     hosts = host_selector(selected_interface)
-
+    print(hosts)
 
 main()
