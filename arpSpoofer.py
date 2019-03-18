@@ -53,7 +53,12 @@ def interface_selector():
         print(str(i) + ": " + interface.name)
         i = i + 1
 
-    selected_interface_id = input("Please choose a network interface:\n")
+    print("")
+
+    selected_interface_id = input("Please choose a network interface: ")
+
+    print("")
+
     try:
         selected_interface_id = int(selected_interface_id)
         selected_interface = interfaces[selected_interface_id]
@@ -70,13 +75,12 @@ def interface_selector():
 
 
 def list_hosts(interface: Interface):
-    # TODO: Implement method to list hosts with scapy.arping()
-
     netmask = interface.get_netmask().split(".")
     ip = interface.get_addr().split(".")
 
     ip = [int(x) for x in ip]
 
+    # TODO: This is bad, make not bad
     if ip[3] != 0:
         ip[3] = ip[3]-1
     elif ip[2] != 0:
@@ -107,12 +111,16 @@ def list_hosts(interface: Interface):
 
     cidr_full = ip_str + "/" + cidr
 
-    print(cidr_full)
-
     conf.iface = interface.get_name()
-    tmp = scapy.layers.l2.arping(interface.get_addr() + "/" + cidr)
+    tmp = scapy.layers.l2.arping(cidr_full)
 
-    host_list = ["192.168.56.101", "192.168.56.102"]
+    print()
+
+    host_list = []
+
+    for item in tmp[0]:
+        host_list.append(item[0].pdst)
+
     return host_list
 
 
@@ -125,23 +133,23 @@ def host_selector(interface: Interface):
         print(str(i) + ": " + host)
         i = i + 1
 
-    selected_host_ids = input("Please select host(s) to sniff, comma separated list of IDs. Default = all:\n")
+    print()
 
-    selected_hosts = []
+    target_1_id = input("Please select target #1: ")
+    target_2_id = input("Please select target #2: ")
 
-    if selected_host_ids == "" or selected_host_ids.lower() == "all":
-        selected_hosts = hosts
-    else:
-        selected_host_ids_list = selected_host_ids.split(",")
-        for host_id in selected_host_ids_list:
-            selected_hosts.append(hosts[int(host_id)])
+    target_1 = hosts[int(target_1_id)]
+    target_2 = hosts[int(target_2_id)]
+
+    selected_hosts = [target_1, target_2]
 
     return selected_hosts
 
-
 def main():
+    print("This is an ARP Spoofing tool.\n")
     selected_interface = interface_selector()
-    hosts = host_selector(selected_interface)
-    print(hosts)
+    targets = host_selector(selected_interface)
+    print(targets)
+
 
 main()
