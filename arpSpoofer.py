@@ -1,13 +1,16 @@
 import scapy.layers.l2
-from scapy.all import conf
+from scapy.all import *
 import netifaces
 from math import log
+from uuid import getnode as get_mac
+
 
 class Interface:
-    def __init__(self, name, netmask, addr):
+    def __init__(self, name, netmask, addr, hwaddr):
         self.name = name
         self.netmask = netmask
         self.addr = addr
+        self.hwaddr = hwaddr
 
     def get_name(self):
         return self.name
@@ -18,17 +21,23 @@ class Interface:
     def get_addr(self):
         return self.addr
 
+    def get_hwaddr(self):
+        return self.hwaddr
+
 
 def list_interfaces():
     # ID for the IP address information on this system
     inet_id = netifaces.AF_INET
+    link_id = netifaces.AF_LINK
 
     interfaces = []
     for interface_name in sorted(netifaces.interfaces()):
         int_ip_data = netifaces.ifaddresses(interface_name)
+        hw_data = netifaces.ifaddresses(interface_name)
 
         try:
             inet_values = int_ip_data[inet_id][0]
+            hw_values = hw_data[link_id][0]
         except TypeError:
             continue
         except KeyError:
@@ -36,8 +45,9 @@ def list_interfaces():
 
         netmask = inet_values.get("netmask")
         addr = inet_values.get("addr")
+        hwaddr = hw_values.get("addr")
 
-        iface = Interface(interface_name, netmask, addr)
+        iface = Interface(interface_name, netmask, addr, hwaddr)
 
         interfaces.append(iface)
 
@@ -144,6 +154,13 @@ def host_selector(interface: Interface):
     selected_hosts = [target_1, target_2]
 
     return selected_hosts
+
+
+def build_packet(src: str, hwsrc: str, psrc: str, hwdst: str, pdst: str):
+    arp = ""
+
+    return arp
+
 
 def main():
     print("This is an ARP Spoofing tool.\n")
