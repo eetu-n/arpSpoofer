@@ -163,7 +163,7 @@ class CommandLineInterface:
         print("Available hosts:")
         i = 0
         for host in hosts:
-            print("host " + str(i) + " ip: " + host.get_hwaddr() + ", mac: " + host.get_addr())
+            print("host " + str(i) + " ip: " + host.get_addr() + ", mac: " + host.get_hwaddr())
             i = i + 1
 
         print()
@@ -182,6 +182,7 @@ class CommandLineInterface:
 class AttackTools:
     @staticmethod
     def build_arp_response(attacker: Host, target1: Host, target2: Host):
+        # TODO: Add error detection
         ether_index = 0
         arp_index = 1
 
@@ -225,7 +226,7 @@ def main():
     print("This is an ARP Spoofing tool.\n")
     selected_interface = CommandLineInterface.interface_selector()
     targets = CommandLineInterface.host_selector(selected_interface)
-    AttackTools.build_arp_response(selected_interface.get_host(), targets[0], targets[1])
+    AttackTools.poison_single(selected_interface.get_host(), targets[0], targets[1], True, False, False)
 
 
 main()
