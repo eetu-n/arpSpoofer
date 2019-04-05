@@ -1,6 +1,3 @@
-import threading
-
-
 class Interface:
     def __init__(self, name, netmask, addr, hwaddr):
         self.name = name
