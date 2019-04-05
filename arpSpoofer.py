@@ -61,7 +61,8 @@ def main():
     print("This is an ARP Spoofing tool.\n")
     selected_interface = CommandLineInterface.interface_selector()
     targets = CommandLineInterface.host_selector(selected_interface)
-    threads = AttackTools.poison(selected_interface.get_host(), targets[0], targets[1], True, True, True)
+    attack_object = AttackTools()
+    threads = attack_object.poison(selected_interface.get_host(), targets[0], targets[1], True, True, True)
 
     input("Press enter to stop emission")
     for thread in threads:

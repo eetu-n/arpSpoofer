@@ -52,9 +52,9 @@ class AttackTools:
 
         return threads
 
+    # TODO: Convert from class method to instance method
     @classmethod
     def sendp_flood(cls, pkt):
-        # TODO: Add exit condition
         while True:
             sendp(pkt, verbose=False)
             if not cls.thread1.killed():
