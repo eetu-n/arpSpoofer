@@ -1,3 +1,6 @@
+import threading
+
+
 class Interface:
     def __init__(self, name, netmask, addr, hwaddr):
         self.name = name
@@ -32,3 +35,15 @@ class Host:
 
     def get_hwaddr(self):
         return self.hwaddr
+
+
+class StoppableThread(threading.Thread):
+    def __init__(self, *args, **kwargs):
+        super(StoppableThread, self).__init__(*args, **kwargs)
+        self._killed = False
+
+    def kill(self):
+        self._killed = True
+
+    def killed(self):
+        return self._killed

