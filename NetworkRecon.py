@@ -1,6 +1,9 @@
 import netifaces
 from math import log
-from DataStructures import Interface
+from DataStructures import *
+import scapy.layers.l2
+from scapy.all import *
+
 
 class NetworkRecon:
     @staticmethod
@@ -81,7 +84,7 @@ class NetworkRecon:
         host_list = []
 
         for item in tmp[0]:
-            tmpHost = Host(item[0].pdst, item[1].src)
-            host_list.append(tmpHost)
+            tmp_host = Host(item[0].pdst, item[1].src)
+            host_list.append(tmp_host)
 
         return host_list
