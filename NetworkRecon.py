@@ -29,9 +29,9 @@ class NetworkRecon:
             addr = inet_values.get("addr")
             hwaddr = hw_values.get("addr")
 
-            iface = Interface(interface_name, netmask, addr, hwaddr)
+            interface = Interface(interface_name, netmask, addr, hwaddr)
 
-            interfaces.append(iface)
+            interfaces.append(interface)
 
         return interfaces
 
