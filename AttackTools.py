@@ -68,6 +68,3 @@ class Poisoner:
             sendp(pkt, verbose=False)
             if self.is_killed():
                 break
-
-    def packet_forwarder(self, attacker: Host, target1: Host, target2: Host, bidirectional: bool):
-        pass
