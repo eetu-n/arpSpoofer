@@ -127,30 +127,27 @@ class Sniffer:
         return result
 
     def continuous_sniff(self):
+        filt = ""
+
         if self.to_send:
             n = 0
             ip_list = self.destination.get_ip_list()
 
-            filt = "ip.dst != "
-
             for ip in ip_list:
+                filt = filt + "ip.dst != "
                 filt = filt + ip
 
                 if n != len(ip_list) - 1:
-                    filt = filt + ", "
+                    filt = filt + " and "
 
                 n = n + 1
-
-        else:
-            filt = ""
 
         while not self.killed:
             filename = Sniffer.gen_file_name()
             self.to_send.append(filename)
             self.sniff_single(filename, filt)
             if self.must_send:
-                self.send_pcap(self.destination.get_url(), self.get_next_to_send())
+                self.send_pcap()
 
-    @staticmethod
-    def send_pcap(url, file):
-        post(url, files={'file': open(file, 'rb')})
+    def send_pcap(self):
+        post(self.destination.get_url(), files={'file': open(self.get_next_to_send(), 'rb')})
