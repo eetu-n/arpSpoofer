@@ -62,7 +62,7 @@ def main():
     selected_interface = CommandLineInterface.interface_selector()
     targets = CommandLineInterface.host_selector(selected_interface)
     AttackTools.poison(selected_interface.get_host(), targets[0], targets[1], True, False)
-    sniffer = AttackTools.sniff(False, selected_interface)
+    sniffer = AttackTools.sniff(True, selected_interface)
 
     print()
     input("Press enter to stop")

