@@ -8,6 +8,7 @@ class Interface:
         self.addr = addr
         self.hwaddr = hwaddr
         self.host = Host(addr, hwaddr)
+        self.active_hosts = [Host]
 
     def get_name(self):
         return self.name
@@ -23,6 +24,12 @@ class Interface:
 
     def get_host(self):
         return self.host
+
+    def get_active_hosts(self):
+        return self.active_hosts
+
+    def set_active_hosts(self, hosts: []):
+        self.active_hosts = hosts
 
 
 class Host:

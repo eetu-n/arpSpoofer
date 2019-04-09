@@ -76,8 +76,10 @@ class NetworkRecon:
 
         cidr_full = ip_str + "/" + cidr
 
+        conf.iface = interface.get_name()
+
         print("Pinging IP Range...")
-        tmp = scapy.layers.l2.arping(cidr_full, iface=interface.get_name(), verbose=False)
+        tmp = scapy.layers.l2.arping(cidr_full, verbose=False)
 
         print()
 
@@ -86,5 +88,7 @@ class NetworkRecon:
         for item in tmp[0]:
             tmp_host = Host(item[0].pdst, item[1].src)
             host_list.append(tmp_host)
+
+        interface.set_active_hosts(host_list)
 
         return host_list
