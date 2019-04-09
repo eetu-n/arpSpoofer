@@ -59,8 +59,6 @@ class NetworkRecon:
 
         cidr_full = ip_str + "/" + cidr
 
-        print(cidr_full)
-
         conf.iface = interface.get_name()
 
         print("Pinging IP Range...")

