@@ -130,7 +130,6 @@ class ARPPoisoner:
 
     def persistence(self):
         while True:
-            print("test2")
             sendp(self.arp_pkt, verbose=False)
             self.quick_confirm()
             if not self.success:
@@ -141,8 +140,6 @@ class ARPPoisoner:
 
     def quick_confirm(self):
         filt = "icmp and dst host " + self.victim.get_addr()
-
-        print("testing " + self.victim.get_addr())
 
         self.quick_confirm_bool = False
 
