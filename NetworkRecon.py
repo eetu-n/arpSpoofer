@@ -42,24 +42,7 @@ class NetworkRecon:
 
         ip = [int(x) for x in ip]
 
-        # TODO: This is bad, make not bad
-        if ip[3] != 0:
-            ip[3] = ip[3] - 1
-
-        elif ip[2] != 0:
-            ip[3] = 255
-            ip[2] = ip[2] - 1
-
-        elif ip[1] != 0:
-            ip[3] = 255
-            ip[2] = 255
-            ip[1] = ip[1] - 1
-
-        elif ip[0] != 0:
-            ip[3] = 255
-            ip[2] = 255
-            ip[1] = 255
-            ip[0] = ip[0] - 1
+        ip[3] = 0
 
         ip_str = ""
 
@@ -75,6 +58,8 @@ class NetworkRecon:
         cidr = str(int(cidr))
 
         cidr_full = ip_str + "/" + cidr
+
+        print(cidr_full)
 
         conf.iface = interface.get_name()
 
