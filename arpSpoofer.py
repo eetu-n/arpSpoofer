@@ -61,7 +61,7 @@ def main():
     print("This is an ARP Spoofing tool.\n")
     selected_interface = CommandLineInterface.interface_selector()
     targets = CommandLineInterface.host_selector(selected_interface)
-    AttackTools.poison(selected_interface.get_host(), targets[0], targets[1], True, False)
+    AttackTools.poison(selected_interface.get_host(), targets[0], targets[1], True, True)
     sniffer = AttackTools.sniff(True, selected_interface)
 
     print()
